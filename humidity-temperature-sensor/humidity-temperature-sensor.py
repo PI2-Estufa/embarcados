@@ -20,7 +20,7 @@ sensor = Adafruit_DHT.DHT22
 #GPIO.setmode(GPIO.BOARD)
  
 # Define a GPIO conectada ao pino de dados do sensor
-pino_sensor = 25
+pino_sensor = 23
  
 # Informacoes iniciais
 print ("*** Lendo os valores de temperatura e umidade");
