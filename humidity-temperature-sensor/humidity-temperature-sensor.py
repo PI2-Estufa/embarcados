@@ -1,31 +1,25 @@
-# Programa : Sensor de temperatura DHT11 com Raspberry Pi B+
-# Autor : FILIPEFLOP
- 
-# Carrega as bibliotecas
-import Adafruit_DHT
+import Adafruit_DHT 
 import RPi.GPIO as GPIO
 import time
- 
-# Define o tipo de sensor
-#sensor = Adafruit_DHT.DHT11
+from nameko.standalone.rpc import ClusterRpcProxy
+
 sensor = Adafruit_DHT.DHT22
- 
-GPIO.setmode(GPIO.BOARD)
- 
-# Define a GPIO conectada ao pino de dados do sensor
-pino_sensor = 25
- 
-# Informacoes iniciais
-print ("*** Lendo os valores de temperatura e umidade");
- 
-while(1):
-   # Efetua a leitura do sensor
-   umid, temp = Adafruit_DHT.read_retry(sensor, pino_sensor);
-   # Caso leitura esteja ok, mostra os valores na tela
-   if umid is not None and temp is not None:
-     print ("Temperatura = {0:0.1f}  Umidade = {1:0.1f}n").format(temp, umid);
-     print ("Aguarda 5 segundos para efetuar nova leitura...n");
-     time.sleep(5)
-   else:
-     # Mensagem de erro de comunicacao com o sensor
-     print("Falha ao ler dados do DHT22 !!!")
+
+pin = 23
+
+print "Reading values"
+
+config = {'AMQP_URI':'amqp://52.67.189.254:80'}
+
+
+while(True):
+    with ClusterRpcProxy(config) as cluster_rpc:
+        print "opening connection"
+        humidity, temperature = Adafruit_DHT.read_retry(sensor, pin);
+        if humidity is not None and temperature is not None:
+            print "Temperature = {}  Humidity = {}".format(temperature, humidity);
+            cluster_rpc.humidity_server.receive_humidity(humidity)
+            cluster_rpc.temperature_server.receive_temperature(temperature)
+            time.sleep(0.5)
+        else:
+            print "Failed to read data"
