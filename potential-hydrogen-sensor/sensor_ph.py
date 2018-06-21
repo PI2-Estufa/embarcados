@@ -1,3 +1,4 @@
+import os
 import smbus
 import time
 from nameko.standalone.rpc import ClusterRpcProxy
@@ -20,7 +21,7 @@ def value2():
 
 sensorValue = 0
 
-config = {'AMQP_URI':'amqp://52.67.189.254:80'}
+config = {'AMQP_URI': os.environ.get("RABBIT_URL")}
 
 buf = [0]*10
 while(1):

@@ -26,7 +26,7 @@ def read(ds18b20):
     return celsius, farenheit
 
 
-config = {'AMQP_URI':'amqp://52.67.189.254:80'}
+config = {'AMQP_URI': os.environ.get("RABBIT_URL")}
 
 def loop(ds18b20):
     while True:
@@ -34,7 +34,7 @@ def loop(ds18b20):
             if read(ds18b20) != None:
                 temperature = read(ds18b20)[0]
                 print "Connecting. Please, wait"
-                cluster_rpc.temperature_server.receive_temperature(temperature)
+                cluster_rpc.water_temperature_server.receive_water_temperature(temperature)
                 print "connected"
                 time.sleep(2)
                 print "Current temperature : %0.3f C" % temperature

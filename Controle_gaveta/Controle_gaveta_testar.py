@@ -16,7 +16,7 @@ E para controlar a gaveta o programa receberá uma variável de comando.
 from time import sleep
 import numpy as np
 import threading
-import RPI.GPIO as GPIO
+import RPi.GPIO as GPIO
 
 GPIO.setmode(GPIO.BOARD)
 
