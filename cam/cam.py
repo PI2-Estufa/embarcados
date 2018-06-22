@@ -3,7 +3,7 @@ import time
 import requests
 from datetime import datetime
 
-url = "http://192.168.0.33:8000/picture"
+url = "http://172.20.10.4:8000/picture"
 
 while True:
     print "taking picture"

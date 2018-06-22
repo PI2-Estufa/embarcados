@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import os
 from time import sleep
+from kombu import Connection, Queue, Exchange
+from kombu.mixins import ConsumerMixin
 import numpy as np
 import threading
 import RPi.GPIO as GPIO
@@ -34,6 +37,8 @@ c = 0
 reed1 = 0
 reed2 = 1
 
+drawer_state = ''
+
 def start(porta,comando,reed1,reed2):
     
     global estado
@@ -51,11 +56,14 @@ def eFechado(porta,comando,reed1,reed2):
     global estado
     global motor1
     global motor2
+    global drawer_state
     
     motor1 = 0
     motor2 = 0
     
-    print ("Gaveta fechada. ")
+    drawer_state = "Gaveta fechada. "
+
+
     #sleep(t)
     if ((porta == 1) and (comando == '0' or comando =='1')) or (comando == '0'):
         estado = 0
@@ -68,7 +76,14 @@ def eAbrindo(porta,comando, reed1, reed2):
     global estado
     global motor1 
     global motor2
-    print("Abrindo gaveta")
+    global drawer_state
+    global reedPorta
+
+    if reedPorta == 1:
+        return
+
+    drawer_state = "Abrindo gaveta"
+
     if reed2 == 0: 
         motor1 = 0
         motor2 = 1
@@ -85,8 +100,10 @@ def eAberto(porta, comando, reed1, reed2):
     global estado 
     global motor1
     global motor2
+    global drawer_state
 
-    print("Gaveta aberta")
+    drawer_state = "Gaveta aberta"
+
     motor1 = 0 
     motor2 = 0
     if(comando == '1'):
@@ -99,7 +116,10 @@ def eFechando(porta, comando, reed1, reed2):
     global estado
     global motor1
     global motor2
-    print ("Fechando Gaveta")  
+    global drawer_state
+
+    drawer_state = "Fechando Gaveta"
+
     if reed1 == 0: 	
         motor1 = 1
         motor2 = 0
@@ -154,26 +174,70 @@ def controleGaveta():
 gaveta = threading.Thread(target=controleGaveta)  
 gaveta.start()
 
-while(True):
-    if GPIO.input(pinPorta)	== GPIO.HIGH:
-        reedPorta = 1 #porta fechada
-        print("Porta fechada")
-    else:
-        reedPorta = 0 #porta aberta
-        print("Porta aberta")
-    
-    if GPIO.input(pinReed1) == GPIO.HIGH:
-        reed1 = 1
-        print("Reed traseiro ativado")
-    else:
-        reed1 = 0
-        print("Reed traseiro desativado")
-    
-    if GPIO.input(pinReed2) == GPIO.HIGH:
-        reed2 = 1
-        print("Reed dianteiro ativado")
-    else:
-        reed2 = 0
-        print("Reed dianteiro desativado")
+def ameixa(command):
+    global reedPorta
+    global reed1
+    global reed2
+    global c
+    global drawer_state
 
-    c = input("Quer a gaveta aberta ou fechada(0 = fechada e 1 = aberta): ")	
+    print(drawer_state)
+    if drawer_state == "Gaveta aberta" or drawer_state == "Abrindo gaveta":
+        signal = '0'
+    else: 
+        signal = '1'
+
+    for i in list(range(10)):
+        sleep(.5)
+        if GPIO.input(pinPorta)	== GPIO.HIGH:
+            reedPorta = 1 #porta fechada
+            print("Porta fechada")
+        else:
+            reedPorta = 0 #porta aberta
+            print("Porta aberta")
+        
+        if GPIO.input(pinReed1) == GPIO.HIGH:
+            reed1 = 1
+            print("Reed traseiro ativado")
+        else:
+            reed1 = 0
+            print("Reed traseiro desativado")
+        
+        if GPIO.input(pinReed2) == GPIO.HIGH:
+            reed2 = 1
+            print("Reed dianteiro ativado")
+        else:
+            reed2 = 0
+            print("Reed dianteiro desativado")
+
+        c = signal 
+        print(drawer_state)
+
+
+class DrawerMaster(ConsumerMixin):
+
+    def __init__(self, connection):
+        print('worker starting')
+        self.connection = connection
+
+    def get_consumers(self, Consumer, channel):
+        return [Consumer(queues=queues, callbacks=[self.process])]
+
+    def process(self, body, message):
+        command = body['command']
+        print(command)
+        ameixa(command)
+        message.ack()
+
+
+if __name__ == '__main__':
+    exchange = Exchange('rdrawer', type='direct')
+    queues = [Queue('rdrawer', exchange, routing_key='rdrawer')]
+
+    with Connection(os.environ.get('RABBIT_URL')) as conn:
+        try:
+            worker = DrawerMaster(conn)
+            worker.run()
+        except KeyboardInterrupt:
+            print('buh bye')
+

@@ -43,12 +43,13 @@ def kill():
     quit()
 
 if __name__ == '__main__':
-    try:
-        serialNum = sensor()
-        loop(serialNum)
-    except KeyboardInterrupt:
-        kill()
-    except:
-        print "I tried. Did not succeed. Now I'm leaving"
+    while(True):
+        try:
+            serialNum = sensor()
+            loop(serialNum)
+        except KeyboardInterrupt:
+            kill()
+        except:
+            print "I tried. Did not succeed. Now I'm leaving"
 
 
